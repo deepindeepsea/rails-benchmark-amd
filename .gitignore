@@ -105,3 +105,6 @@ system_monitor_*.log
 # AWS specific (if using deployment scripts)
 .aws/
 *.pem
+__pycache__/
+*.pyc
+*.pyo
