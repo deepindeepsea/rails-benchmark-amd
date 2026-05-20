@@ -1,0 +1,107 @@
+# Rails Benchmark App .gitignore
+
+# Dependencies
+/vendor/bundle/
+/node_modules/
+
+# Rails specific
+*.rbc
+capybara-*.html
+.rspec
+/db/*.sqlite3
+/db/*.sqlite3-journal
+/db/*.sqlite3-[0-9]*
+/public/system
+/coverage/
+/spec/tmp
+*.orig
+rerun.txt
+pickle-email-*.html
+
+# Rails cache and logs
+/log/*
+/tmp/*
+!/log/.keep
+!/tmp/.keep
+
+# Environment variables
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# Rails credentials
+/config/master.key
+/config/credentials/*.key
+
+# Asset compilation
+/public/assets
+/public/packs
+/public/packs-test
+/node_modules
+/yarn-error.log
+yarn-debug.log*
+.yarn-integrity
+
+# Storage
+/storage/*
+!/storage/.keep
+
+# Uploads
+/public/uploads
+
+# Benchmark results
+/benchmark-results/
+benchmark-results-*.tar.gz
+*.benchmark
+*.profile
+
+# System files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Editor files
+*~
+\#*\#
+.\#*
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Ruby/Rails specific
+/.bundle
+/vendor/bundle
+/.yardoc
+/_yardoc
+/doc/
+/rdoc/
+/.sass-cache
+/connect.lock
+/coverage
+/Gemfile.lock
+/libpeerconnection.log
+/npm-debug.log*
+/tmp
+
+# Puma specific
+/tmp/pids/
+/tmp/cache/
+/tmp/sockets/
+
+# Test results
+/test/reports/
+/spec/reports/
+
+# Monitoring logs
+system_monitor_*.log
+
+# AWS specific (if using deployment scripts)
+.aws/
+*.pem
