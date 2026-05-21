@@ -40,6 +40,9 @@ cd ~/rails-benchmark-amd    # or wherever you cloned it
 
 bundle install    # one-time: installs all gem dependencies from Gemfile
 
+# one-time: generate Rails binstubs (creates bin/rails, bin/rake, etc.)
+bundle exec rake app:update:bin
+
 bundle exec rails db:create db:migrate db:seed    # one-time: creates and initializes the SQLite database
 
 # Start Rails in production mode
