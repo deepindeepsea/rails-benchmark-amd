@@ -51,12 +51,12 @@ if [ ! -d "$HOME/.rbenv" ]; then
     git clone https://github.com/rbenv/rbenv.git ~/.rbenv
     echo 'export PATH="$HOME/.rbenv/bin:$PATH"' >> ~/.bashrc
     echo 'eval "$(rbenv init -)"' >> ~/.bashrc
-
     git clone https://github.com/rbenv/ruby-build.git ~/.rbenv/plugins/ruby-build
-
-    export PATH="$HOME/.rbenv/bin:$PATH"
-    eval "$(rbenv init -)"
 fi
+
+# Always load rbenv into current shell — whether just installed or already present
+export PATH="$HOME/.rbenv/bin:$PATH"
+eval "$(rbenv init -)"
 
 # Install Ruby 3.2.0
 echo "Installing Ruby 3.2.0..."
