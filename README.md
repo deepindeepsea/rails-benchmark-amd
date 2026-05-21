@@ -38,13 +38,13 @@ Run these from inside the cloned repo directory:
 ```bash
 cd ~/rails-benchmark-amd    # or wherever you cloned it
 
-bundle install
+bundle install    # one-time: installs all gem dependencies from Gemfile
 
-rails db:create db:migrate db:seed
+bundle exec rails db:create db:migrate db:seed    # one-time: creates and initializes the SQLite database
 
 # Start Rails in production mode
 export RAILS_ENV=production
-export SECRET_KEY_BASE=$(rails secret)
+export SECRET_KEY_BASE=$(bundle exec rails secret)
 bundle exec puma -e production -p 3000 -b 0.0.0.0 &
 ```
 
