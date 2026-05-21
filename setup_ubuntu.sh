@@ -131,7 +131,7 @@ server {
     listen [::]:80;
 
     server_name _;
-    root /home/ubuntu/rails-benchmark/public;
+    root $HOME/rails-benchmark/public;
 
     location / {
         try_files $uri $uri/ @rails_app;
@@ -197,8 +197,8 @@ sudo usermod -aG docker $USER
 
 # Create directory for the Rails application
 echo "Creating application directory..."
-mkdir -p /home/ubuntu/rails-benchmark
-cd /home/ubuntu/rails-benchmark
+mkdir -p $HOME/rails-benchmark
+cd $HOME/rails-benchmark
 
 # Install Ruby gems system-wide dependencies
 echo "Installing Ruby gems system dependencies..."
@@ -243,14 +243,14 @@ EOF
 
 # Create a simple benchmark script
 echo "Creating benchmark script..."
-cat > /home/ubuntu/rails-benchmark/benchmark.sh << 'EOF'
+cat > $HOME/rails-benchmark/benchmark.sh << 'EOF'
 #!/bin/bash
 
 # Rails Benchmark Script
 # Tests various endpoints with different load testing tools
 
 APP_URL="http://localhost:3000"
-RESULTS_DIR="/home/ubuntu/benchmark-results"
+RESULTS_DIR="$HOME/benchmark-results"
 
 mkdir -p $RESULTS_DIR
 
@@ -296,10 +296,10 @@ grep "Requests per second" $RESULTS_DIR/ab_results.txt || echo "Ab results not f
 grep "Req/Sec" $RESULTS_DIR/wrk_results.txt || echo "Wrk results not found"
 EOF
 
-chmod +x /home/ubuntu/rails-benchmark/benchmark.sh
+chmod +x $HOME/rails-benchmark/benchmark.sh
 
 # Create a system information script
-cat > /home/ubuntu/system_info.sh << 'EOF'
+cat > $HOME/system_info.sh << 'EOF'
 #!/bin/bash
 
 echo "=== System Information ==="
@@ -340,8 +340,8 @@ echo "Ruby version: $(ruby -v || echo 'Ruby not found in current shell - please 
 echo "Rails version: $(rails -v || echo 'Rails not found in current shell')"
 echo ""
 echo "Next steps:"
-echo "1. Copy your Rails application to /home/ubuntu/rails-benchmark/"
-echo "2. Run 'cd /home/ubuntu/rails-benchmark && bundle install'"
+echo "1. Copy your Rails application to $HOME/rails-benchmark/"
+echo "2. Run 'cd $HOME/rails-benchmark && bundle install'"
 echo "3. Run 'rails server -e production -p 3000 -b 0.0.0.0' to start the app"
 echo "4. Run './benchmark.sh' to test performance"
 echo ""
