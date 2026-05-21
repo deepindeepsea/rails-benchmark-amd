@@ -2,6 +2,35 @@
 
 A simple Ruby on Rails "Hello World" application designed for performance benchmarking on AWS EC2 AMD instances (M7A/M8A).
 
+## ⚡ Restarting After a Cold Boot (Already Set Up)
+
+Everything is installed — you just want to start the server and benchmark again. This is all you need:
+
+```bash
+# 1. Go to the repo
+cd ~/pradeepn/rails-benchmark-amd
+
+# 2. Start the Rails server
+export RAILS_ENV=production
+export SECRET_KEY_BASE=$(bundle exec rails secret)
+bundle exec puma -e production -p 3000 -b 0.0.0.0 &
+
+# 3. Verify it's running
+curl http://localhost:3000/health
+
+# 4. Run a benchmark
+wrk -t4 -c100 -d30s --latency http://localhost:3000/hello
+```
+
+To stop the server when done:
+```bash
+pkill -f puma
+```
+
+That's it. No setup, no bundle install, no database commands needed after the first-time setup.
+
+---
+
 ## 🚀 Quick Start
 
 ### 1. Launch AWS EC2 Instance
@@ -39,9 +68,6 @@ Run these from inside the cloned repo directory:
 cd ~/rails-benchmark-amd    # or wherever you cloned it
 
 bundle install    # one-time: installs all gem dependencies from Gemfile
-
-# one-time: generate Rails binstubs (creates bin/rails, bin/rake, etc.)
-bundle exec rake app:update:bin
 
 bundle exec rails db:create db:migrate db:seed    # one-time: creates and initializes the SQLite database
 
