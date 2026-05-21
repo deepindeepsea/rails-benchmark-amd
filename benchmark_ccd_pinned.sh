@@ -55,28 +55,37 @@ else
     exit 1
 fi
 
-# Build taskset CPU list: 7 cores per CCD (exclude last core of each group for client)
+# Build taskset CPU list:
+#   CCDs 0..(N-2): all 8 cores for server
+#   Last CCD:      7 cores for server, last core for client
 SERVER_CORES=""
 for i in $(seq 0 $((NUM_CCDS - 1))); do
     read -r first last <<< "${CCD_GROUPS[$i]}"
-    server_last=$((last - 1))   # leave last core of each CCD free for OS
-    if [[ -z "$SERVER_CORES" ]]; then
-        SERVER_CORES="${first}-${server_last}"
+    if [[ $i -lt $((NUM_CCDS - 1)) ]]; then
+        # Full CCD — all 8 cores to server
+        range="${first}-${last}"
     else
-        SERVER_CORES="${SERVER_CORES},${first}-${server_last}"
+        # Last CCD — reserve last core for client
+        range="${first}-$((last - 1))"
+    fi
+    if [[ -z "$SERVER_CORES" ]]; then
+        SERVER_CORES="$range"
+    else
+        SERVER_CORES="${SERVER_CORES},${range}"
     fi
 done
 
-# Client core: last core of the last used CCD group
+# Client core: last core of the last used CCD only
 read -r _ CLIENT_CORE <<< "${CCD_GROUPS[$((NUM_CCDS - 1))]}"
 
-WORKERS=$((NUM_CCDS * 7))
+# Workers: 8 per CCD for all but last, 7 for last CCD
+WORKERS=$(( (NUM_CCDS - 1) * 8 + 7 ))
 
 echo "=== CCD-Pinned Rails Benchmark ==="
 echo "CCDs used:       $NUM_CCDS / $TOTAL_CCDS"
 echo "Server cores:    $SERVER_CORES"
 echo "Client core:     $CLIENT_CORE"
-echo "Puma workers:    $WORKERS (7 per CCD)"
+echo "Puma workers:    $WORKERS (8 per CCD except last, which gives 1 core to client)"
 echo "Threads/worker:  1 (CPU-bound workload)"
 echo "Connections:     $CONNECTIONS"
 echo "Duration:        ${DURATION}s"
