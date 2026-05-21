@@ -1,7 +1,4 @@
 class HomeController < ApplicationController
-  # Skip CSRF protection for API endpoints
-  skip_before_action :verify_authenticity_token
-
   def index
     render plain: "Hello World from Rails Benchmark App!"
   end
