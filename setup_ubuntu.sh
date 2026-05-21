@@ -9,6 +9,16 @@ set -e  # Exit on any error
 echo "=== Rails Benchmark App Setup for Ubuntu 24.04 ==="
 echo "Setting up environment for AWS EC2 AMD instances..."
 
+# Load rbenv into current shell if already installed (safe to run even if not yet installed)
+# This ensures rbenv is always in PATH on re-runs of this script
+export PATH="$HOME/.rbenv/bin:$PATH"
+eval "$(rbenv init -)" 2>/dev/null || true
+
+# Verify rbenv if already present
+if command -v rbenv &>/dev/null; then
+    echo "rbenv already available: $(rbenv --version)"
+fi
+
 # Update system packages
 echo "Updating system packages..."
 sudo apt update && sudo apt upgrade -y
@@ -144,14 +154,15 @@ server {
 }
 EOF
 
-# Install htop and system monitoring tools
+# Install system monitoring tools
+# iostat/vmstat are in sysstat/procps, netstat in net-tools, ss in iproute2
 echo "Installing system monitoring tools..."
 sudo apt install -y \
     htop \
-    iostat \
-    vmstat \
-    netstat \
-    ss \
+    sysstat \
+    procps \
+    net-tools \
+    iproute2 \
     tcpdump
 
 # Set up firewall (allow SSH, HTTP, and custom Rails port)
