@@ -45,6 +45,20 @@ sudo apt update && sudo apt install -y yarn
 echo "Installing SQLite3..."
 sudo apt install -y sqlite3 libsqlite3-dev
 
+# Install Ruby build dependencies (required before compiling Ruby via rbenv)
+# Missing these causes psych, readline, openssl extensions to fail during build
+echo "Installing Ruby build dependencies..."
+sudo apt-get install -y \
+    libreadline-dev \
+    libyaml-dev \
+    libssl-dev \
+    zlib1g-dev \
+    libffi-dev \
+    libgdbm-dev \
+    libncurses5-dev \
+    autoconf \
+    bison
+
 # Install Ruby using rbenv (Ruby version manager)
 echo "Installing rbenv and Ruby..."
 if [ ! -d "$HOME/.rbenv" ]; then
