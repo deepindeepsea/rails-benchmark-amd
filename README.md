@@ -6,81 +6,84 @@ A simple Ruby on Rails "Hello World" application designed for performance benchm
 
 ### 1. Launch AWS EC2 Instance
 
-```bash
-# Recommended instance types for benchmarking:
-# - m7a.large (2 vCPU, 8 GB RAM) - Good for basic testing
-# - m7a.xlarge (4 vCPU, 16 GB RAM) - Better for load testing  
-# - m7a.2xlarge (8 vCPU, 32 GB RAM) - Best for high-load scenarios
-# - m8a.large (2 vCPU, 8 GB RAM) - Latest generation AMD
-# - m8a.xlarge (4 vCPU, 16 GB RAM) - Latest generation medium
-# - m8a.2xlarge (8 vCPU, 32 GB RAM) - Latest generation high-end
+Recommended instance types for benchmarking:
+- m7a.large (2 vCPU, 8 GB RAM) — basic testing
+- m7a.xlarge (4 vCPU, 16 GB RAM) — load testing
+- m7a.2xlarge (8 vCPU, 32 GB RAM) — high-load scenarios
+- m8a.large / m8a.xlarge / m8a.2xlarge — latest generation AMD
 
-# Use Ubuntu 24.04 LTS AMI
-```
+Use Ubuntu 24.04 LTS AMI.
 
-### 2. One-Command Setup
+### 2. Clone and Run Setup
 
 ```bash
-# SSH into your EC2 instance
-ssh -i your-key.pem ubuntu@your-instance-ip
+# SSH into your instance
+ssh -i your-key.pem <user>@your-instance-ip
 
-# Clone and setup in one go
+# Clone the repo
 git clone https://github.com/your-username/rails-benchmark-amd.git
 cd rails-benchmark-amd
+
+# Run setup (installs Ruby, Rails, benchmarking tools, system tuning)
 chmod +x setup_ubuntu.sh
-sudo ./setup_ubuntu.sh
-
-# Restart shell to load Ruby environment
-source ~/.bashrc
+./setup_ubuntu.sh
 ```
 
-### 3. 🎯 Instance Optimization (NEW!)
+The setup script installs rbenv and adds it to `~/.bashrc`. **Open a new shell** (or reconnect via SSH) after setup so that `rbenv` and `ruby` are automatically in your PATH — no manual `source` commands needed after that.
+
+### 3. Install Dependencies and Start the Server
+
+Run these from inside the cloned repo directory:
 
 ```bash
-# Auto-optimize for your specific instance type
-chmod +x optimize_for_instance.sh
-./optimize_for_instance.sh
+cd ~/rails-benchmark-amd    # or wherever you cloned it
 
-# This automatically configures:
-# - Optimal Puma worker count (utilizes all CPU cores)
-# - Optimal thread count per worker
-# - Optimal benchmark client threads
-# - CPU core affinity (for 8+ core instances)
-```
-
-### 4. Deploy and Start
-
-```bash
-# Install dependencies
 bundle install
 
-# Start optimized server (uses all CPU cores)
-source .env
-bundle exec puma &
+rails db:create db:migrate db:seed
+
+# Start Rails in production mode
+export RAILS_ENV=production
+export SECRET_KEY_BASE=$(rails secret)
+bundle exec puma -e production -p 3000 -b 0.0.0.0 &
 ```
 
-### 5. Test the Application
+### 4. Test the Application
 
 ```bash
-# Basic connectivity test
 curl http://localhost:3000/health
-
-# Test endpoints
 curl http://localhost:3000/hello
 curl http://localhost:3000/json
 curl http://localhost:3000/data
 curl http://localhost:3000/ping
 ```
 
-### 6. Run Optimized Benchmarks
+### 5. Run Benchmarks
 
 ```bash
-# Run the instance-optimized benchmark suite
-./benchmark_optimized.sh
+# Quick load test
+wrk -t4 -c100 -d30s --latency http://localhost:3000/hello
 
-# Or run the original comprehensive suite
+# Full benchmark suite
 ./benchmark_detailed.sh
 ```
+
+### Optional: Auto-tune for Your Instance
+
+`optimize_for_instance.sh` detects your AWS instance type and writes an `.env` file with tuned Puma worker/thread counts and wrk client settings:
+
+```bash
+./optimize_for_instance.sh
+
+# Then start Puma with those settings
+source .env
+bundle exec puma &
+
+# Run the tuned benchmark suite
+./benchmark_optimized.sh
+```
+
+You can skip this and use the defaults above — it is not required to run benchmarks.
 
 ## ⚡ Performance Optimization
 
@@ -297,9 +300,11 @@ Enable detailed monitoring for:
 ### Common Issues
 
 1. **Ruby/Rails not found after setup**
+
+   The setup script adds rbenv to `~/.bashrc`. Open a new shell (reconnect via SSH) and `ruby` / `rails` will be in your PATH automatically. You should not need to run any manual `source` commands in day-to-day use.
+
+   If you are in the same shell where setup ran, you can load rbenv once for that session:
    ```bash
-   source ~/.bashrc
-   export PATH="$HOME/.rbenv/bin:$PATH"
    eval "$(rbenv init -)"
    ```
 
@@ -309,10 +314,9 @@ Enable detailed monitoring for:
    sudo kill -9 <PID>
    ```
 
-3. **Permission denied**
+3. **Permission denied on scripts**
    ```bash
-   sudo chown -R ubuntu:ubuntu /home/ubuntu/rails-benchmark
-   chmod +x benchmark.sh
+   chmod +x benchmark_detailed.sh benchmark_optimized.sh
    ```
 
 4. **Out of memory**
