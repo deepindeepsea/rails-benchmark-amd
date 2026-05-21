@@ -1,7 +1,4 @@
 class ApplicationController < ActionController::Base
-  # Only allow modern browsers supporting webp images, web push, badges, import maps, CSS nesting, and CSS :has.
-  allow_browser versions: :modern
-
-  # Skip CSRF token for API endpoints to allow benchmarking tools
-  skip_before_action :verify_authenticity_token, only: [:ping, :json, :health]
+  # Skip CSRF token for benchmark endpoints so wrk/ab/siege can hit them directly
+  skip_before_action :verify_authenticity_token
 end
