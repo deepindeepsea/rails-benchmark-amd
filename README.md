@@ -13,7 +13,7 @@ cd ~/pradeepn/rails-benchmark-amd
 # 2. Start the Rails server
 export RAILS_ENV=production
 export SECRET_KEY_BASE=$(bundle exec rails secret)
-bundle exec puma -e production -p 3000 -b 0.0.0.0 &
+bundle exec puma -e production -p 3000 &
 
 # 3. Verify it's running
 curl http://localhost:3000/health
@@ -74,7 +74,7 @@ bundle exec rails db:create db:migrate db:seed    # one-time: creates and initia
 # Start Rails in production mode
 export RAILS_ENV=production
 export SECRET_KEY_BASE=$(bundle exec rails secret)
-bundle exec puma -e production -p 3000 -b 0.0.0.0 &
+bundle exec puma -e production -p 3000 &
 ```
 
 ### 4. Test the Application
