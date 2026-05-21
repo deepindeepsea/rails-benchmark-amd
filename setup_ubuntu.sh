@@ -327,7 +327,7 @@ which bundler && bundler -v
 echo ""
 EOF
 
-chmod +x /home/ubuntu/system_info.sh
+chmod +x $HOME/system_info.sh
 
 echo ""
 echo "=== Setup Complete! ==="
