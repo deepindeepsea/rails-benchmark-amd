@@ -1,52 +1,42 @@
 # Puma configuration for Rails Benchmark App
-# Optimized for AWS EC2 AMD instances
+# Optimized for AMD EPYC / AWS EC2 AMD instances (Puma 6+)
 
-# Number of worker processes
+app_root = File.expand_path("..", __dir__)
+
+# Number of worker processes (override with WEB_CONCURRENCY env var)
 workers ENV.fetch("WEB_CONCURRENCY") { 4 }
 
 # Thread count per worker
 threads_count = ENV.fetch("RAILS_MAX_THREADS") { 8 }
 threads threads_count, threads_count
 
-# Preload the app for better memory usage and faster worker boot times
+# Preload the app for better memory usage and faster worker boot
 preload_app!
 
-# Specifies the rackup file to use
-rackup DefaultRackup
-
-# Specifies the port to listen on
-port ENV.fetch("PORT") { 3000 }
-
-# Specifies the environment
+# Port and environment
+port        ENV.fetch("PORT") { 3000 }
 environment ENV.fetch("RAILS_ENV") { "production" }
 
-# Bind to all interfaces for EC2 access
+# Bind to all interfaces
 bind "tcp://0.0.0.0:#{ENV.fetch("PORT") { 3000 }}"
 
-# Logging
-stdout_redirect '/home/ubuntu/rails-benchmark/log/puma.stdout.log', '/home/ubuntu/rails-benchmark/log/puma.stderr.log', true
+# Logging (relative to app root)
+FileUtils.mkdir_p "#{app_root}/log"
+FileUtils.mkdir_p "#{app_root}/tmp/pids"
+stdout_redirect "#{app_root}/log/puma.stdout.log", "#{app_root}/log/puma.stderr.log", true
 
-# Process ID file
-pidfile '/home/ubuntu/rails-benchmark/tmp/pids/puma.pid'
+# PID and state files
+pidfile   "#{app_root}/tmp/pids/puma.pid"
+state_path "#{app_root}/tmp/pids/puma.state"
 
-# State file for restart
-state_path '/home/ubuntu/rails-benchmark/tmp/pids/puma.state'
-
-# On worker boot
+# Reconnect DB on worker boot
 on_worker_boot do
-  # Worker specific setup for Rails 4.1+
   ActiveRecord::Base.establish_connection if defined?(ActiveRecord)
 end
 
-# Allow puma to be restarted by `rails restart` command
+# Allow puma to be restarted by `rails restart`
 plugin :tmp_restart
 
-# Performance tuning
-worker_timeout 60
+# Timeouts
+worker_timeout      60
 worker_boot_timeout 60
-
-# Preload app for better memory usage
-preload_app!
-
-# Memory optimization
-nakayoshi_fork if ENV["RAILS_ENV"] == "production"
