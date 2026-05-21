@@ -47,6 +47,7 @@ import time
 import threading
 import subprocess
 import argparse
+import shutil
 from collections import defaultdict
 
 POLL_INTERVAL_S  = 0.05   # 50 ms polling
