@@ -25,6 +25,13 @@ DURATION="${DURATION:-30}"
 CONNS_PER_THREAD="${CONNS_PER_THREAD:-100}"
 APP_URL="${APP_URL:-http://localhost:3000/hello}"
 
+# One folder per sweep — keeps working dir clean and groups related runs
+SWEEP_TS=$(date +%Y%m%d_%H%M%S)
+SWEEP_DIR="${SWEEP_DIR:-$SCRIPT_DIR/results/sweep_${SWEEP_TS}}"
+mkdir -p "$SWEEP_DIR"
+SWEEP_LOG="$SWEEP_DIR/sweep.log"
+exec > >(tee -a "$SWEEP_LOG") 2>&1
+
 # Physical CCD layout on EPYC 9684X (matches benchmark_ccd_pinned.sh)
 CCD_GROUPS=( "0 7" "8 15" "16 23" "24 31" "32 39" "40 47" \
              "48 55" "56 63" "64 71" "72 79" "80 87" "88 95" )
@@ -36,6 +43,7 @@ echo "Server CCD counts: $CCD_LIST"
 echo "Client CCD:        cores $CLIENT_FIRST-$CLIENT_LAST (reserved)"
 echo "Duration:          ${DURATION}s per run"
 echo "Conns/thread:      $CONNS_PER_THREAD"
+echo "Results dir:       $SWEEP_DIR"
 echo ""
 
 for N in $CCD_LIST; do
@@ -60,14 +68,13 @@ for N in $CCD_LIST; do
     WRK_CORES="$WRK_FIRST-$WRK_LAST"
     WRK_CONNS=$((WRK_T * CONNS_PER_THREAD))
 
-    TS=$(date +%Y%m%d_%H%M%S)
-    HTML="$SCRIPT_DIR/rails_ccd${N}_wrk${WRK_T}_${TS}.html"
+    HTML="$SWEEP_DIR/rails_ccd${N}_wrk${WRK_T}.html"
 
     echo ""
     echo "============================================================"
     echo "  Run: N=$N CCDs | Puma workers=$WORKERS on cores $SERVER_CORES"
     echo "  wrk: -t$WRK_T -c$WRK_CONNS pinned to cores $WRK_CORES"
-    echo "  HTML: $(basename $HTML)"
+    echo "  HTML: $HTML"
     echo "============================================================"
 
     # Kill any leftover puma
@@ -105,4 +112,5 @@ done
 
 echo ""
 echo "=== Sweep complete ==="
-ls -1 "$SCRIPT_DIR"/rails_ccd*_wrk*.html 2>/dev/null | tail -20
+echo "All artifacts saved under: $SWEEP_DIR"
+ls -1 "$SWEEP_DIR"/ 2>/dev/null
