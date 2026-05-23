@@ -1,7 +1,74 @@
 # Rails Benchmark Application
 
-A simple Ruby on Rails "Hello World" application designed for performance benchmarking on AWS EC2 AMD instances (M7A/M8A).
+A simple Ruby on Rails "Hello World" application designed for performance benchmarking on AWS EC2 AMD instances (M7A/M8A) and AMD EPYC bare-metal hosts.
 
+## 🏆 Best-Known Optimization Recipe (EPYC Genoa-X, validated 2026-05-23)
+
+The combined recipe below was derived from a four-round optimization study on an AMD EPYC 9684X (96-core, 12 CCDs, 96 MB L3 per CCD via 3D V-Cache). Compared with a default Ruby 3.2 + Puma single-cluster setup, it delivers **+64% RPS on a single CCD and +36% RPS at 10 CCDs**, with much flatter per-CCD efficiency at scale.
+
+Sweep results (`/hello` endpoint, wrk on dedicated client CCDs, 30 s per point):
+
+| CCDs (N) | Baseline | + jemalloc | + per-CCD Puma | + YJIT (Ruby 3.3.11) |
+|---:|---:|---:|---:|---:|
+| 1  | 12,005 | 12,402 | 12,400 | **19,649** |
+| 2  | 21,331 | 22,021 | 24,699 | **39,022** |
+| 4  | 41,296 | 42,751 | 49,383 | **77,288** |
+| 8  | 77,157 | 79,789 | 96,151 | **112,999** |
+| 10 | 90,115 | 93,195 | 113,281 | **122,582** |
+
+Per-CCD efficiency at N=10 jumped from 75% (baseline) → 91% (per-CCD Puma isolation). Backend Memory Bound % stopped growing with N once per-CCD listen sockets were introduced — consistent with the AMD EPYC Performance Playbook v1.2 §6 "Optimizing L3 Domain Usage" guidance for cross-CCD coherence.
+
+### The recipe (do all four)
+
+```bash
+# 1. Ruby 3.3+ built with YJIT (requires rustc)
+sudo apt-get install -y rustc
+RUBY_CONFIGURE_OPTS=--enable-yjit rbenv install 3.3.11
+rbenv global 3.3.11
+ruby --yjit -e 'puts RubyVM::YJIT.enabled?'   # => true
+
+# 2. jemalloc with bounded arenas
+sudo apt-get install -y libjemalloc2
+
+# 3. One Puma master per CCD, each on its own port, pinned to that CCD's cores.
+#    EPYC 9684X CCDs are 8 contiguous cores: 0-7, 8-15, 16-23, ...
+#    Reserve 1-2 CCDs at the high end of the core list for the load generator.
+export PUMA_PREAMBLE="LD_PRELOAD=/usr/lib/x86_64-linux-gnu/libjemalloc.so.2 MALLOC_ARENA_MAX=2 RUBY_YJIT_ENABLE=1"
+export RAILS_ENV=production
+export SECRET_KEY_BASE=$(bundle exec rails secret)
+export RAILS_MAX_THREADS=1
+
+# Example: N=10 server CCDs (cores 0-79), client on CCDs 10-11 (cores 80-95)
+for i in $(seq 0 9); do
+    first=$((i*8)); last=$((first+7))
+    PORT=$((3000+i))
+    env $PUMA_PREAMBLE WEB_CONCURRENCY=8 taskset -c "${first}-${last}" \
+        bundle exec puma -e production -b "tcp://0.0.0.0:${PORT}" \
+        > /tmp/puma_p${PORT}.log 2>&1 &
+done
+
+# 4. Run wrk with one process per Puma master, each pinned to its own client core
+for i in $(seq 0 9); do
+    CORE=$((80+i)); PORT=$((3000+i))
+    taskset -c $CORE wrk -t1 -c100 -d30s --latency \
+        http://localhost:$PORT/hello > /tmp/wrk_p${PORT}.txt 2>&1 &
+done
+wait
+awk '/Requests\/sec:/{s+=$2} END{print "Total RPS:",s}' /tmp/wrk_p*.txt
+```
+
+To automate this sweep across N = 1, 2, 4, 8, 10 CCDs, use `benchmark_ccd_sweep_isolated.sh` (see the [amd-perf-toolkit repo](https://github.com/deepindeepsea/amd-perf-toolkit) for `amd_pipeline_metrics.sh` which produces a PerfSpect-style HTML report alongside each point).
+
+### Why this works (one-paragraph each)
+
+* **YJIT (biggest single win, +58% at N=1).** Replaces Ruby's interpreter dispatch (a data-dependent load chain) with native machine code. PMC: IPC 0.97 → 1.15, Backend Memory % 18 → 8, Retiring % 17 → 20.
+* **Per-CCD Puma + per-port wrk (biggest scaling win, fixes 75% → 91% efficiency).** One shared listen socket across many CCDs serializes connection acceptance and causes cross-CCD coherence traffic on socket/accept-queue cachelines. One Puma master per CCD on its own port gives each CCD its own accept queue — the kernel does the load balancing via the port number. (Equivalent to `SO_REUSEPORT` per CCD; needed because Puma 8.0.1 does not yet expose SO_REUSEPORT natively.)
+* **jemalloc + `MALLOC_ARENA_MAX=2` (+3.4% uniform).** glibc's per-thread arenas fragment across CCDs and cause heap walking across L3 domains. jemalloc with two arenas eliminates that bouncing. Small but free.
+* **`taskset` per CCD.** Without affinity the scheduler migrates threads between CCDs and pulls cached data with them — pure waste.
+
+Full PMC walk-through and the diagnosis path are in `amd-perf-toolkit/sweep_plots/SCALING_FINAL_REPORT.md`.
+
+---
 ## ⚡ Restarting After a Cold Boot (Already Set Up)
 
 Everything is installed — you just want to start the server and benchmark again. This is all you need:
